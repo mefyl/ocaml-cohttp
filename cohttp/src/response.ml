@@ -41,13 +41,9 @@ let version t = t.version
 let status t = t.status
 let flush t = t.flush
 
-let make ?(version = `HTTP_1_1) ?(status = `OK) ?(flush = false) ?encoding
-    ?(headers = Header.init ()) () =
-  let headers =
-    match encoding with
-    | None -> headers
-    | Some encoding -> Header.add_transfer_encoding headers encoding
-  in
+let make ?(version = `HTTP_1_1) ?(status = `OK) ?(flush = false)
+    ?(encoding = Transfer.Chunked) ?(headers = Header.init ()) () =
+  let headers = Header.add_transfer_encoding headers encoding in
   { headers; version; flush; status }
 
 let pp_hum ppf r =

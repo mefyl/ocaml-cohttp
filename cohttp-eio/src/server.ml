@@ -96,8 +96,8 @@ let write output (response : Cohttp.Response.t) body =
   in
   Eio.Buf_write.flush output
 
-let respond ?(headers = Cohttp.Header.init ()) ?flush ~status ~body ()
-    (request, oc) =
+let _respond ?encoding ?(headers = Cohttp.Header.init ()) ?flush ~status ~body
+    () (request, oc) =
   let keep_alive = Http.Request.is_keep_alive request in
   let headers =
     match Cohttp.Header.connection headers with
@@ -106,11 +106,16 @@ let respond ?(headers = Cohttp.Header.init ()) ?flush ~status ~body ()
           (if keep_alive then "keep-alive" else "close")
     | Some _ -> headers
   in
-  let response = Cohttp.Response.make ~headers ?flush ~status () in
+  let response = Cohttp.Response.make ?encoding ~headers ?flush ~status () in
   write oc response body
 
+let respond ?headers ?flush ~status ~body () response =
+  _respond ?encoding:None ?headers ?flush ~status ~body () response
+
 let respond_string ?headers ?flush ~status ~body () =
-  respond ?headers ?flush ~status ~body:(Body.of_string body) ()
+  _respond
+    ~encoding:(Fixed (String.length body |> Int64.of_int))
+    ?headers ?flush ~status ~body:(Body.of_string body) ()
 
 let callback { conn_closed; handler } ((_, peer_address) as conn) input output =
   let id = (Cohttp.Connection.create () [@ocaml.warning "-3"]) in
