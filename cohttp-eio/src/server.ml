@@ -70,12 +70,17 @@ let write output (response : Cohttp.Response.t) body =
       (Cohttp.Header.get_transfer_encoding response.headers, content_length)
     with
     | Unknown, None ->
-        { response with encoding = Chunked } [@ocaml.warning "-3"]
+        let headers =
+          Cohttp.Header.add_transfer_encoding response.headers Chunked
+        in
+        { response with headers }
     | Unknown, Some size ->
-        { response with encoding = Fixed (Int64.of_int size) }
-        [@ocaml.warning "-3"]
-    | from_headers, _ ->
-        { response with encoding = from_headers } [@ocaml.warning "-3"]
+        let headers =
+          Cohttp.Header.add_transfer_encoding response.headers
+            (Fixed (Int64.of_int size))
+        in
+        { response with headers }
+    | _, _ -> response
   in
   let () = Logs.debug (fun m -> m "send headers") in
   let () =
@@ -83,8 +88,8 @@ let write output (response : Cohttp.Response.t) body =
       (fun writer ->
         let () =
           Logs.debug (fun m ->
-              (m "send body (%a)" Cohttp.Transfer.pp_encoding response.encoding
-               [@ocaml.warning "-3"]))
+              m "send body (%a)" Cohttp.Transfer.pp_encoding
+                (Cohttp.Header.get_transfer_encoding response.headers))
         in
         flow_to_writer body writer Io.Response.write_body)
       response output
